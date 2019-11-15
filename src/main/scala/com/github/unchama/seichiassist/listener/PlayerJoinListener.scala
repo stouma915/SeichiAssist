@@ -5,7 +5,7 @@ import java.util.UUID
 import com.github.unchama.seichiassist.data.LimitedLoginEvent
 import com.github.unchama.seichiassist.data.player.PlayerData
 import com.github.unchama.seichiassist.util.Util
-import com.github.unchama.seichiassist.{ActiveSkill, ManagedWorld, SeichiAssist}
+import com.github.unchama.seichiassist.{ActiveSkill, ManagedWorld, SeichiAssist, SeichiLevelUpMessages}
 import net.coreprotect.model.Config
 import org.bukkit.ChatColor._
 import org.bukkit.entity.Player
@@ -118,7 +118,7 @@ class PlayerJoinListener extends Listener {
       //メビウスおひとつどうぞ
       MebiusListener.give(player)
       //初見さんにLv1メッセージを送信
-      player.sendMessage(SeichiAssist.seichiAssistConfig.getLvMessage(1))
+      player.sendMessage(SeichiLevelUpMessages.getMessage(1))
     }
 
   }

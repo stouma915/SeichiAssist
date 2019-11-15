@@ -368,7 +368,7 @@ class PlayerData(
         //レベルアップ時の花火の打ち上げ
         val loc = player.getLocation
         Util.launchFireWorks(loc) // TODO: fix Util
-        val lvmessage = SeichiAssist.seichiAssistConfig.getLvMessage(i + 1)
+        val lvmessage = SeichiLevelUpMessages.getMessage(i + 1)
         if (!lvmessage.isEmpty) {
           player.sendMessage(AQUA + lvmessage)
         }
