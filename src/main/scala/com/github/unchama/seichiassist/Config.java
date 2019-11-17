@@ -131,10 +131,6 @@ public class Config {
         return url;
     }
 
-    public String getLvMessage(int i) {
-        return config.getString("lv" + i + "message", "");
-    }
-
     private NicknameParts getNickname(final int i) {
         // もしも存在しないIDであれば二つ名の代わりにエラーメッセージを返す
         return Nicknames.map().get(i).getOrElse(() -> (NicknameParts) new Undefined(i));
