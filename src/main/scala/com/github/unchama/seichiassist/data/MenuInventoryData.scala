@@ -17,6 +17,7 @@ import org.bukkit.inventory.meta.{ItemMeta, SkullMeta}
 import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 
+
 object MenuInventoryData {
   private val playermap = SeichiAssist.playermap
   private val databaseGateway = SeichiAssist.databaseGateway
@@ -66,8 +67,8 @@ object MenuInventoryData {
     var invIndex = 0
     for (rank <- 10 * page until 10 + 10 * page) {
       if (rank >= SeichiAssist.ranklist.size) break //todo: break is not supported
-      val rankdata = SeichiAssist.ranklist.apply(rank)
-      if (rankdata.totalbreaknum < LevelThresholds.levelExpThresholds.apply(lowerBound - 1)) { //レベル100相当の総整地量判定に変更
+      val rankdata = SeichiAssist.ranklist(rank)
+      if (rankdata.totalbreaknum < LevelThresholds.levelExpThresholds(lowerBound - 1)) { //レベル100相当の総整地量判定に変更
         break //todo: break is not supported
       }
       val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + "整地レベル:" + rankdata.level, ChatColor.RESET + "" + ChatColor.GREEN + "総整地量:" + rankdata.totalbreaknum)
@@ -120,7 +121,7 @@ object MenuInventoryData {
     var invIndex = 0
     for (rank <- rankStart until rankStart + 10) {
       if (rank >= SeichiAssist.ranklist_playtick.size) break //todo: break is not supported
-      val rankdata = SeichiAssist.ranklist_playtick.apply(rank)
+      val rankdata = SeichiAssist.ranklist_playtick(rank)
       val skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.BOLD + "" + (rank + 1) + "位:" + "" + ChatColor.WHITE + rankdata.name, Collections.singletonList(ChatColor.RESET + "" + ChatColor.GREEN + "総ログイン時間:" + TypeConverter.toTimeString(TypeConverter.toSecond(rankdata.playtick))), rankdata.name)
       itemstack.setItemMeta(skullmeta)
       AsyncInventorySetter.setItemAsync(inventory, invIndex, itemstack.clone)
@@ -158,7 +159,7 @@ object MenuInventoryData {
       voteRank < 10 + 10 * page
     }) {
       if (voteRank >= SeichiAssist.ranklist_p_vote.size) break //todo: break is not supported
-      val rankdata = SeichiAssist.ranklist_p_vote.apply(voteRank)
+      val rankdata = SeichiAssist.ranklist_p_vote(voteRank)
       if (rankdata.p_vote == 0) break //todo: break is not supported
       val skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.BOLD + "" + (voteRank + 1) + "位:" + "" + ChatColor.WHITE + rankdata.name, Collections.singletonList(ChatColor.RESET + "" + ChatColor.GREEN + "総投票回数:" + rankdata.p_vote), rankdata.name)
       itemstack.setItemMeta(skullmeta)
@@ -198,7 +199,7 @@ object MenuInventoryData {
       donationRank < 50 + 50 * page
     }) {
       if (donationRank >= SeichiAssist.ranklist_premiumeffectpoint.size) break //todo: break is not supported
-      val rankdata = SeichiAssist.ranklist_premiumeffectpoint.apply(donationRank)
+      val rankdata = SeichiAssist.ranklist_premiumeffectpoint(donationRank)
       if (rankdata.premiumeffectpoint < lowerBound) { //寄付金額0
         break //todo: break is not supported
       }
@@ -280,7 +281,7 @@ object MenuInventoryData {
    * @return メニュー
    */
   def getBuyRecordMenuData(player: Player) = {
-    val playerdata = playermap.apply(player.getUniqueId)
+    val playerdata = playermap(player.getUniqueId)
     val inventory = getEmptyInventory(4, ChatColor.BLUE + "" + ChatColor.BOLD + "プレミアムエフェクト購入履歴")
     val itemstack = buildPlayerSkull(null, ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動", "MHF_ArrowLeft")
     AsyncInventorySetter.setItemAsync(inventory, 27, itemstack.clone)
@@ -296,7 +297,7 @@ object MenuInventoryData {
    */
   def setFreeTitleMainData(p: Player): Inventory = {
     val uuid = p.getUniqueId
-    val playerdata = SeichiAssist.playermap.apply(uuid)
+    val playerdata = SeichiAssist.playermap(uuid)
     if (validate(p, playerdata, "二つ名組み合わせ")) return null
     val inventory = getEmptyInventory(4, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "二つ名組合せシステム")
     //各ボタンの設定
@@ -346,7 +347,7 @@ object MenuInventoryData {
    */
   def setFreeTitle1Data(p: Player): Inventory = {
     val uuid = p.getUniqueId
-    val playerdata = SeichiAssist.playermap.apply(uuid)
+    val playerdata = SeichiAssist.playermap(uuid)
     if (validate(p, playerdata, "二つ名/前パーツ")) return null
     val inventory = getEmptyInventory(4, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "二つ名組合せ「前」")
     if (finishedHeadPageBuild.getOrElse(uuid, () => false)) finishedHeadPageBuild.put(uuid, false)
@@ -397,7 +398,7 @@ object MenuInventoryData {
    */
   def setFreeTitle2Data(p: Player): Inventory = {
     val uuid = p.getUniqueId
-    val playerdata = SeichiAssist.playermap.apply(uuid)
+    val playerdata = SeichiAssist.playermap(uuid)
     if (validate(p, playerdata, "二つ名/中パーツ")) return null
     val inventory = getEmptyInventory(4, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "二つ名組合せ「中」")
     if (finishedMiddlePageBuild.getOrElse(uuid, FALSE)) finishedMiddlePageBuild.put(uuid, false)
@@ -438,7 +439,7 @@ object MenuInventoryData {
    */
   def setFreeTitle3Data(p: Player): Inventory = {
     val uuid = p.getUniqueId
-    val playerdata = SeichiAssist.playermap.apply(uuid)
+    val playerdata = SeichiAssist.playermap(uuid)
     if (validate(p, playerdata, "二つ名/後パーツ")) return null
     val inventory = getEmptyInventory(4, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "二つ名組合せ「後」")
     if (!finishedTailPageBuild.getOrElse(uuid, FALSE)) tailPartIndex.put(uuid, 1000)
@@ -475,7 +476,7 @@ object MenuInventoryData {
   def setTitleShopData(p: Player): Inventory = { //プレイヤーを取得
     val uuid = p.getUniqueId
     //プレイヤーデータ
-    val playerdata = SeichiAssist.playermap.apply(uuid)
+    val playerdata = SeichiAssist.playermap(uuid)
     if (validate(p, playerdata, "実績ポイントショップ")) return null
     val inventory = getEmptyInventory(4, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "実績ポイントショップ")
     val ap = playerdata.achievePoint
@@ -535,7 +536,7 @@ object MenuInventoryData {
    */
   def getVotingMenuData(p: Player): Inventory = { //UUID取得
     val uuid = p.getUniqueId
-    val playerdata = SeichiAssist.playermap.apply(uuid)
+    val playerdata = SeichiAssist.playermap(uuid)
     if (validate(p, playerdata, "投票妖精")) return null
     val inventory = getEmptyInventory(4, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "投票ptメニュー")
     //投票pt受け取り
@@ -575,7 +576,7 @@ object MenuInventoryData {
       lore.addAll(util.Arrays.asList(ChatColor.RESET + "" + ChatColor.RED + "" + ChatColor.BOLD + "※ﾆﾝｹﾞﾝに見られないように気を付けること！", ChatColor.RESET + "" + ChatColor.RED + "" + ChatColor.BOLD + "  毎日大妖精からデータを更新すること！", "", ChatColor.RESET + "" + ChatColor.GOLD + "" + ChatColor.BOLD + "昨日までにがちゃりんごを", ChatColor.RESET + "" + ChatColor.GOLD + "" + ChatColor.BOLD + "たくさんくれたﾆﾝｹﾞﾝたち", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "召喚されたらラッキーだよ！"))
       for (rank <- 0 to 3) {
         if (rank >= SeichiAssist.ranklist_p_apple.size) break //todo: break is not supported
-        val rankdata = SeichiAssist.ranklist_p_apple.apply(rank)
+        val rankdata = SeichiAssist.ranklist_p_apple(rank)
         if (rankdata.p_apple == 0) break //todo: break is not supported
         // 2 x 4 = 8
         lore.add(ChatColor.GRAY + "たくさんくれたﾆﾝｹﾞﾝ第" + (rank + 1) + "位！")
@@ -636,7 +637,7 @@ object MenuInventoryData {
    */
   def getGiganticBerserkBeforeEvolutionMenu(p: Player): Inventory = {
     val uuid = p.getUniqueId
-    val playerdata = SeichiAssist.playermap.apply(uuid)
+    val playerdata = SeichiAssist.playermap(uuid)
     if (validate(p, playerdata, "Gigantic進化前確認")) return null
     val inventory = getEmptyInventory(6, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "スキルを進化させますか?")
     // 色
@@ -655,7 +656,7 @@ object MenuInventoryData {
 
   def getGiganticBerserkAfterEvolutionMenu(p: Player): Inventory = {
     val uuid = p.getUniqueId
-    val playerdata = SeichiAssist.playermap.apply(uuid)
+    val playerdata = SeichiAssist.playermap(uuid)
     if (validate(p, playerdata, "GiganticBerserk進化後画面")) return null
     val inventory = getEmptyInventory(6, ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "スキルを進化させました")
     val table = Array[Byte](12, 15, 4, 0, 3, 12)
