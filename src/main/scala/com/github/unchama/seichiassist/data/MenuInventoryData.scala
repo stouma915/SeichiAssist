@@ -46,10 +46,17 @@ object MenuInventoryData {
    * ラムダをいちいち正確に打つのは退屈で疲れる作業だし、かといってメソッドでカプセル化するメリットもない。
    * 加えて、明示的に「まとめる」ことでJVMに対して最適化のヒントとしても使える。
    */
-  private val FALSE = () => false
   private val DIG100 = (meta: ItemMeta) => meta.addEnchant(Enchantment.DIG_SPEED, 100, false)
   private val toMoveNicknameMenu = build(Material.BARRIER, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "二つ名組合せメインメニューへ", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動")
-
+  private val ARROW_LEFT = "MHF_ArrowLeft"
+  private val ARROW_UP = "MHF_ArrowUp"
+  private val GB_CONFIRM = util.Arrays.asList(
+    ChatColor.RESET + "" + ChatColor.GREEN + "進化することにより、スキルの秘めたる力を解放できますが",
+    ChatColor.RESET + "" + ChatColor.GREEN + "スキルは更に大量の魂を求めるようになり",
+    ChatColor.RESET + "" + ChatColor.GREEN + "レベル(回復確率)がリセットされます",
+    ChatColor.RESET + "" + ChatColor.RED + "本当に進化させますか?",
+    ChatColor.RESET + "" + ChatColor.DARK_RED + ChatColor.UNDERLINE + "クリックで進化させる"
+  )
   //投票特典受け取りボタン
   private def getVoteButtonLore(playerdata: PlayerData) = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GRAY + "投票特典を受け取るには", ChatColor.RESET + "" + ChatColor.GRAY + "投票ページで投票した後", ChatColor.RESET + "" + ChatColor.GRAY + "このボタンをクリックします", ChatColor.RESET + "" + ChatColor.AQUA + "特典受取済投票回数：" + playerdata.p_givenvote, ChatColor.RESET + "" + ChatColor.AQUA + "所有投票pt：" + playerdata.activeskilldata.effectpoint)
 
@@ -83,19 +90,10 @@ object MenuInventoryData {
       AsyncInventorySetter.setItemAsync(inventory, 52, itemstack.clone)
     }
     // 1ページ目を開く
-    var name = null
-    var lore = null
-    var ign = null
-    if (page == 0) {
-      name = ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ホームへ"
-      lore = Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動")
-      ign = "MHF_ArrowLeft"
-    }
-    else { // 整地神ランキング前ページ目を開く
-      name = ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "整地神ランキング" + page + "ページ目へ"
-      lore = Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動")
-      ign = "MHF_ArrowUp"
-    }
+    val firstPage = page == 0
+    val name = if (firstPage) ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ホームへ" else ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "整地神ランキング" + page + "ページ目へ"
+    val lore = Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動")
+    val ign = if (firstPage) ARROW_LEFT else ARROW_UP
     val skullmeta = buildSkullMeta(name, lore, ign)
     itemstack.setItemMeta(skullmeta)
     AsyncInventorySetter.setItemAsync(inventory, 45, itemstack.clone)
@@ -155,9 +153,7 @@ object MenuInventoryData {
     val itemstack = new ItemStack(Material.SKULL_ITEM, 1, PLAYER_SKULL)
     var voteRank = 10 * page
     var invIndex = 0
-    while ( {
-      voteRank < 10 + 10 * page
-    }) {
+    while (voteRank < 10 + 10 * page) {
       if (voteRank >= SeichiAssist.ranklist_p_vote.size) break //todo: break is not supported
       val rankdata = SeichiAssist.ranklist_p_vote(voteRank)
       if (rankdata.p_vote == 0) break //todo: break is not supported
@@ -239,17 +235,22 @@ object MenuInventoryData {
     //念のためエラー分岐
     if (validate(p, playerdata, "整地スキルエフェクト選択")) return null
     val inventory = getEmptyInventory(6, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "整地スキルエフェクト選択");
-    val itemstack: ItemStack = buildPlayerSkull(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "スキルメニューへ", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動", "MHF_ArrowLeft")
-    AsyncInventorySetter.setItemAsync(inventory, 45, itemstack)
+    val itemstack1: ItemStack = buildPlayerSkull(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "スキルメニューへ", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動", "MHF_ArrowLeft")
+    AsyncInventorySetter.setItemAsync(inventory, 45, itemstack1)
     //1行目
-    val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + "現在選択しているエフェクト：" + ActiveSkillNormalEffect.getNameByNum(playerdata.activeskilldata.effectnum), ChatColor.RESET + "" + ChatColor.YELLOW + "使えるエフェクトポイント：" + playerdata.activeskilldata.effectpoint, ChatColor.RESET + "" + ChatColor.DARK_GRAY + "※投票すると獲得出来ます", ChatColor.RESET + "" + ChatColor.LIGHT_PURPLE + "使えるプレミアムポイント：" + playerdata.activeskilldata.premiumeffectpoint, ChatColor.RESET + "" + ChatColor.DARK_GRAY + "※寄付をすると獲得できます")
-    val itemstack = buildPlayerSkull(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + playerdata.lowercaseName + "のスキルエフェクトデータ", lore, // この操作は安全; メニューを開けているのにUUIDがないなんてことがないから
-      Bukkit.getOfflinePlayer(playerdata.uuid).getName, DIG100)
-    AsyncInventorySetter.setItemAsync(inventory, 0, itemstack.clone)
-    val itemstack = build(Material.BOOK_AND_QUILL, ChatColor.BLUE + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "プレミアムエフェクト購入履歴", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで閲覧")
-    AsyncInventorySetter.setItemAsync(inventory, 2, itemstack)
-    val itemstack = build(Material.GLASS, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "エフェクトを使用しない", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックでセット", DIG100)
-    AsyncInventorySetter.setItemAsync(inventory, 1, itemstack)
+    val lore = List(ChatColor.RESET + "" + ChatColor.GREEN + "現在選択しているエフェクト：" + ActiveSkillNormalEffect.getNameByNum(playerdata.activeskilldata.effectnum), ChatColor.RESET + "" + ChatColor.YELLOW + "使えるエフェクトポイント：" + playerdata.activeskilldata.effectpoint, ChatColor.RESET + "" + ChatColor.DARK_GRAY + "※投票すると獲得出来ます", ChatColor.RESET + "" + ChatColor.LIGHT_PURPLE + "使えるプレミアムポイント：" + playerdata.activeskilldata.premiumeffectpoint, ChatColor.RESET + "" + ChatColor.DARK_GRAY + "※寄付をすると獲得できます")
+    val itemstack2 = buildPlayerSkull(
+      ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + playerdata.lowercaseName + "のスキルエフェクトデータ",
+      lore.asJava,
+      // この操作は安全; メニューを開けているのにUUIDがないなんてことがないから
+      Bukkit.getOfflinePlayer(playerdata.uuid).getName,
+      DIG100
+    )
+    AsyncInventorySetter.setItemAsync(inventory, 0, itemstack2.clone)
+    val itemstack3 = build(Material.BOOK_AND_QUILL, ChatColor.BLUE + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "プレミアムエフェクト購入履歴", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで閲覧")
+    AsyncInventorySetter.setItemAsync(inventory, 2, itemstack3)
+    val itemstack4 = build(Material.GLASS, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "エフェクトを使用しない", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックでセット", DIG100)
+    AsyncInventorySetter.setItemAsync(inventory, 1, itemstack4)
     val effects = ActiveSkillNormalEffect.values
     var i = 0
     for (elem <- effects) {
@@ -312,17 +313,17 @@ object MenuInventoryData {
     taihiIndex.put(uuid, 0)
     //実績ポイントの最新情報反映ボタン
     // dynamic button
-    val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + "クリックで情報を最新化", ChatColor.RESET + "" + ChatColor.RED + "累計獲得量：" + playerdata.achievePoint.cumulativeTotal, ChatColor.RESET + "" + ChatColor.RED + "累計消費量：" + playerdata.achievePoint.used, ChatColor.RESET + "" + ChatColor.AQUA + "使用可能量：" + playerdata.achievePoint.left)
-    val itemstack = build(Material.EMERALD_ORE, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "実績ポイント 情報", lore)
+    val lore = List(ChatColor.RESET + "" + ChatColor.GREEN + "クリックで情報を最新化", ChatColor.RESET + "" + ChatColor.RED + "累計獲得量：" + playerdata.achievePoint.cumulativeTotal, ChatColor.RESET + "" + ChatColor.RED + "累計消費量：" + playerdata.achievePoint.used, ChatColor.RESET + "" + ChatColor.AQUA + "使用可能量：" + playerdata.achievePoint.left)
+    val itemstack = build(Material.EMERALD_ORE, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "実績ポイント 情報", lore.asJava)
     AsyncInventorySetter.setItemAsync(inventory, 0, itemstack)
     //パーツショップ
     // const button
-    val itemstack = build(Material.ITEM_FRAME, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "実績ポイントショップ", ChatColor.RESET + "" + ChatColor.GREEN + "クリックで開きます")
-    AsyncInventorySetter.setItemAsync(inventory, 9, itemstack)
+    val itemstack2 = build(Material.ITEM_FRAME, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "実績ポイントショップ", ChatColor.RESET + "" + ChatColor.GREEN + "クリックで開きます")
+    AsyncInventorySetter.setItemAsync(inventory, 9, itemstack2)
     //エフェクトポイントからの変換ボタン
-    val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.RED + "JMS投票で手に入るポイントを", ChatColor.RESET + "" + ChatColor.RED + "実績ポイントに変換できます。", ChatColor.RESET + "" + ChatColor.YELLOW + "" + ChatColor.BOLD + "投票pt 10pt → 実績pt 3pt", ChatColor.RESET + "" + ChatColor.AQUA + "クリックで変換を一回行います。", ChatColor.RESET + "" + ChatColor.GREEN + "所有投票pt :" + playerdata.activeskilldata.effectpoint, ChatColor.RESET + "" + ChatColor.GREEN + "所有実績pt :" + playerdata.achievePoint.left)
-    val itemstack = build(Material.EMERALD, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ポイント変換ボタン", lore)
-    AsyncInventorySetter.setItemAsync(inventory, 1, itemstack)
+    val lore2 = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.RED + "JMS投票で手に入るポイントを", ChatColor.RESET + "" + ChatColor.RED + "実績ポイントに変換できます。", ChatColor.RESET + "" + ChatColor.YELLOW + "" + ChatColor.BOLD + "投票pt 10pt → 実績pt 3pt", ChatColor.RESET + "" + ChatColor.AQUA + "クリックで変換を一回行います。", ChatColor.RESET + "" + ChatColor.GREEN + "所有投票pt :" + playerdata.activeskilldata.effectpoint, ChatColor.RESET + "" + ChatColor.GREEN + "所有実績pt :" + playerdata.achievePoint.left)
+    val itemstack3 = build(Material.EMERALD, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ポイント変換ボタン", lore2)
+    AsyncInventorySetter.setItemAsync(inventory, 1, itemstack3)
     val nickname = playerdata.settings.nickname
     val playerTitle = Nicknames.getTitleFor(nickname.id1, nickname.id2, nickname.id3)
     val itemStack = build(Material.BOOK, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "現在の二つ名の確認", ChatColor.RESET + "" + ChatColor.RED + "「" + playerTitle + "」")
@@ -334,8 +335,8 @@ object MenuInventoryData {
     AsyncInventorySetter.setItemAsync(inventory, 13, toMiddleSelection)
     AsyncInventorySetter.setItemAsync(inventory, 15, toTailSelection)
     // const Button
-    val itemstack = buildPlayerSkull(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "実績・二つ名メニューへ", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動", "MHF_ArrowLeft")
-    AsyncInventorySetter.setItemAsync(inventory, 27, itemstack.clone)
+    val itemstack4 = buildPlayerSkull(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "実績・二つ名メニューへ", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動", "MHF_ArrowLeft")
+    AsyncInventorySetter.setItemAsync(inventory, 27, itemstack4.clone)
     inventory
   }
 
@@ -350,7 +351,7 @@ object MenuInventoryData {
     val playerdata = SeichiAssist.playermap(uuid)
     if (validate(p, playerdata, "二つ名/前パーツ")) return null
     val inventory = getEmptyInventory(4, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "二つ名組合せ「前」")
-    if (finishedHeadPageBuild.getOrElse(uuid, () => false)) finishedHeadPageBuild.put(uuid, false)
+    if (finishedHeadPageBuild.getOrElse(uuid, false)) finishedHeadPageBuild.put(uuid, false)
     else headPartIndex.put(uuid, 1000)
     //解禁済みの実績をチェック→前パーツがあるかをチェック→あればボタン配置
     var inventoryIndex = 0
@@ -401,7 +402,7 @@ object MenuInventoryData {
     val playerdata = SeichiAssist.playermap(uuid)
     if (validate(p, playerdata, "二つ名/中パーツ")) return null
     val inventory = getEmptyInventory(4, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "二つ名組合せ「中」")
-    if (finishedMiddlePageBuild.getOrElse(uuid, FALSE)) finishedMiddlePageBuild.put(uuid, false)
+    if (finishedMiddlePageBuild.getOrElse(uuid, false)) finishedMiddlePageBuild.put(uuid, false)
     else middlePartIndex.put(uuid, 9900)
     //パーツがあるかをチェック→あればボタン配置
     var inventoryIndex = 0
@@ -442,7 +443,7 @@ object MenuInventoryData {
     val playerdata = SeichiAssist.playermap(uuid)
     if (validate(p, playerdata, "二つ名/後パーツ")) return null
     val inventory = getEmptyInventory(4, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "二つ名組合せ「後」")
-    if (!finishedTailPageBuild.getOrElse(uuid, FALSE)) tailPartIndex.put(uuid, 1000)
+    if (!finishedTailPageBuild.getOrElse(uuid, false)) tailPartIndex.put(uuid, 1000)
     //解禁済みの実績をチェック→後パーツがあるかをチェック→あればボタン配置
     var inventoryIndex = 0
     for (i <- tailPartIndex(uuid) until 9900) {
@@ -486,16 +487,19 @@ object MenuInventoryData {
 
     //おしながき
     if (playerdata.samepageflag) shopIndex.put(uuid, taihiIndex(uuid))
-    else if (!finishedShopPageBuild.getOrElse(uuid, FALSE)) shopIndex.put(uuid, 9801)
+    else if (!finishedShopPageBuild.getOrElse(uuid, false)) shopIndex.put(uuid, 9801)
     taihiIndex.put(uuid, shopIndex(uuid))
     playerdata.samepageflag_$eq(false)
     var inventoryIndex = 1
     var forNextI = 0
     for (i <- shopIndex(uuid) to 9833) {
-      val lore: mutable.Buffer[String] = null
       var itemstack: ItemStack = null
       if (inventoryIndex < 27) if (!playerdata.TitleFlags.contains(i)) {
-        lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.RED + "前・後パーツ「" + Nicknames.getHeadPartFor(i).getOrElse(() => "") + "」", ChatColor.RESET + "" + ChatColor.GREEN + "必要ポイント：20", ChatColor.RESET + "" + ChatColor.AQUA + "クリックで購入できます")
+        val lore: mutable.Buffer[String] = util.Arrays.asList(
+          ChatColor.RESET + "" + ChatColor.RED + "前・後パーツ「" + Nicknames.getHeadPartFor(i).getOrElse(() => "") + "」",
+          ChatColor.RESET + "" + ChatColor.GREEN + "必要ポイント：20",
+          ChatColor.RESET + "" + ChatColor.AQUA + "クリックで購入できます"
+        ).asScala
         itemstack = build(Material.BEDROCK, Integer.toString(i), lore)
         AsyncInventorySetter.setItemAsync(inventory, inventoryIndex, itemstack)
         inventoryIndex += 1
@@ -511,17 +515,19 @@ object MenuInventoryData {
     // SAFE: putしているのでキーがないなんてことはない
     shopIndex.put(uuid, Math.max(forNextI, 9911))
     for (i <- shopIndex(uuid) to 9938) {
-      if (inventoryIndex < 27) if (!playerdata.TitleFlags.contains(i)) {
-        val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.RED + "中パーツ「" + Nicknames.getMiddlePartFor(i).getOrElse(() => "") + "」", ChatColor.RESET + "" + ChatColor.GREEN + "必要ポイント：35", ChatColor.RESET + "" + ChatColor.AQUA + "クリックで購入できます")
-        val itemstack = build(Material.BEDROCK, Integer.toString(i), lore)
-        AsyncInventorySetter.setItemAsync(inventory, inventoryIndex, itemstack)
-        inventoryIndex += 1
-      }
-      else { //次ページへ遷移するボタン
-        val itemstack = buildPlayerSkull(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "次ページへ", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動", "MHF_ArrowRight")
-        AsyncInventorySetter.setItemAsync(inventory, 35, itemstack)
-        finishedShopPageBuild.put(uuid, true)
-        break //todo: break is not supported
+      if (inventoryIndex < 27) {
+        if (!playerdata.TitleFlags.contains(i)) {
+          val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.RED + "中パーツ「" + Nicknames.getMiddlePartFor(i).getOrElse(() => "") + "」", ChatColor.RESET + "" + ChatColor.GREEN + "必要ポイント：35", ChatColor.RESET + "" + ChatColor.AQUA + "クリックで購入できます")
+          val itemstack = build(Material.BEDROCK, Integer.toString(i), lore)
+          AsyncInventorySetter.setItemAsync(inventory, inventoryIndex, itemstack)
+          inventoryIndex += 1
+        }
+        else { //次ページへ遷移するボタン
+          val itemstack = buildPlayerSkull(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "次ページへ", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動", "MHF_ArrowRight")
+          AsyncInventorySetter.setItemAsync(inventory, 35, itemstack)
+          finishedShopPageBuild.put(uuid, true)
+          break //todo: break is not supported
+        }
       }
     }
     AsyncInventorySetter.setItemAsync(inventory, 27, toMoveNicknameMenu)
@@ -567,11 +573,11 @@ object MenuInventoryData {
     val itemStack = build(Material.GHAST_TEAR, ChatColor.LIGHT_PURPLE + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "マナ妖精 召喚", lore, DIG100)
     AsyncInventorySetter.setItemAsync(inventory, 4, itemStack)
     if (playerdata.usingVotingFairy) { //妖精 時間確認
-      val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GRAY + "妖精さんはいそがしい。", ChatColor.GRAY + "帰っちゃう時間を教えてくれる")
+      val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GRAY + "妖精さんはいそがしい。", ChatColor.GRAY + "帰っちゃう時間を教えてくれる").asScala
       val itemStack = build(Material.COMPASS, ChatColor.LIGHT_PURPLE + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "マナ妖精に時間を聞く", lore, DIG100)
       AsyncInventorySetter.setItemAsync(inventory, 13, itemStack)
       val yourRank = playerdata.calcPlayerApple
-      val lore = new util.ArrayList[String](6 + 2 * 4 + 5)
+      val lore = new util.ArrayList[String](6 + 2 * 4 + 5).asScala
       // 6
       lore.addAll(util.Arrays.asList(ChatColor.RESET + "" + ChatColor.RED + "" + ChatColor.BOLD + "※ﾆﾝｹﾞﾝに見られないように気を付けること！", ChatColor.RESET + "" + ChatColor.RED + "" + ChatColor.BOLD + "  毎日大妖精からデータを更新すること！", "", ChatColor.RESET + "" + ChatColor.GOLD + "" + ChatColor.BOLD + "昨日までにがちゃりんごを", ChatColor.RESET + "" + ChatColor.GOLD + "" + ChatColor.BOLD + "たくさんくれたﾆﾝｹﾞﾝたち", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "召喚されたらラッキーだよ！"))
       for (rank <- 0 to 3) {
@@ -624,8 +630,8 @@ object MenuInventoryData {
     itemmeta.setDisplayName(ChatColor.GOLD + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "妖精とのお約束")
     // n % 4 + 1 -> 1..4
     val strategy = playerdata.toggleGiveApple
-    val lore = loreTable.get(strategy)
-    itemmeta.setLore(lore)
+    val lore = loreTable(strategy)
+    itemmeta.setLore(lore.asInstanceOf[_ <: List[String]])
     itemmeta
   }
 
@@ -641,14 +647,14 @@ object MenuInventoryData {
     if (validate(p, playerdata, "Gigantic進化前確認")) return null
     val inventory = getEmptyInventory(6, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "スキルを進化させますか?")
     // 色
-    val table = Array(12, 15, 4, 0, 3)
+    val table = Array[Byte](12, 15, 4, 0, 3)
     val itemstack = new ItemStack(Material.STAINED_GLASS_PANE, 1, table(playerdata.giganticBerserk.stage))
     val itemmeta = itemstack.getItemMeta
     itemmeta.setDisplayName(" ")
     itemstack.setItemMeta(itemmeta)
     placeGiganticBerserkGlass(inventory, itemstack)
     placeGiganticBerserkShape(inventory)
-    val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + "進化することにより、スキルの秘めたる力を解放できますが", ChatColor.RESET + "" + ChatColor.GREEN + "スキルは更に大量の魂を求めるようになり", ChatColor.RESET + "" + ChatColor.GREEN + "レベル(回復確率)がリセットされます", ChatColor.RESET + "" + ChatColor.RED + "本当に進化させますか?", ChatColor.RESET + "" + ChatColor.DARK_RED + ChatColor.UNDERLINE + "クリックで進化させる")
+    val lore = GB_CONFIRM
     val itemstack = build(Material.NETHER_STAR, ChatColor.WHITE + "スキルを進化させる", lore)
     AsyncInventorySetter.setItemAsync(inventory, 31, itemstack)
     inventory
