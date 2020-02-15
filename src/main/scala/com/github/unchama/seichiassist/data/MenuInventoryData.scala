@@ -283,6 +283,7 @@ object MenuInventoryData {
    * @return メニュー
    */
   def getBuyRecordMenuData(player: Player) = {
+    // TODO: PremiumEffectRecordMenu.scalaへの統合
     val inventory = getEmptyInventory(4, ChatColor.BLUE + "" + ChatColor.BOLD + "プレミアムエフェクト購入履歴")
     val itemstack = buildPlayerSkull(null, ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動", ARROW_LEFT)
     AsyncInventorySetter.setItemAsync(inventory, 27, itemstack.clone)
