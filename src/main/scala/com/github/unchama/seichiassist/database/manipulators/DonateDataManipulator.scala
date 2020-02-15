@@ -1,6 +1,8 @@
 package com.github.unchama.seichiassist.database.manipulators
 
 import java.sql.SQLException
+import java.util.function.Consumer
+import java.util.stream.Stream
 
 import com.github.unchama.seichiassist.data.player.PlayerData
 import com.github.unchama.seichiassist.database.{DatabaseConstants, DatabaseGateway}
@@ -8,7 +10,7 @@ import com.github.unchama.seichiassist.activeskill.effect.ActiveSkillPremiumEffe
 import com.github.unchama.util.ActionStatus
 import org.bukkit.ChatColor._
 import org.bukkit.inventory.{Inventory, ItemStack}
-import org.bukkit.{Bukkit, Material}
+import org.bukkit.{Bukkit, ChatColor, Material}
 
 class DonateDataManipulator(private val gateway: DatabaseGateway) {
 
@@ -46,49 +48,9 @@ class DonateDataManipulator(private val gateway: DatabaseGateway) {
   private def tableReference: String = gateway.databaseName + "." + DatabaseConstants.DONATEDATA_TABLENAME
 
   def loadDonateData(playerdata: PlayerData, inventory: Inventory): Boolean = {
-    var itemstack: ItemStack = null
-    var material: Material = null
-    var lore2: List[String] = null
-    val effect = ActiveSkillPremiumEffect.values
-    // TODO: ほんとうにStarSelectじゃなきゃだめ?
-    val command = "select * from " + tableReference + " where playername = '" + playerdata.lowercaseName + "'"
     try {
-      var count = 0
-      gateway.executeQuery(command).recordIteration { lrs =>
-        //ポイント購入の処理
-        val getPoint = lrs.getInt("getpoint")
-        val usePoint = lrs.getInt("usepoint")
-        if (getPoint > 0) {
-          itemstack = new ItemStack(Material.DIAMOND)
-          lore2 = List(RESET.toString + "" + GREEN + "" + "金額：" + getPoint * 100,
-            "" + RESET + GREEN + "プレミアムエフェクトポイント：+" + getPoint,
-            "" + RESET + GREEN + "日時：" + lrs.getString("date")
-          )
-          itemstack.setItemMeta({
-            val meta = Bukkit.getItemFactory.getItemMeta(Material.DIAMOND)
-            meta.setDisplayName("" + AQUA + UNDERLINE + "" + BOLD + "寄付")
-            meta.setLore(lore2.asJava)
-            meta
-          })
-          inventory.setItem(count, itemstack)
-        } else if (usePoint > 0) {
-          val num = lrs.getInt("effectnum") - 1
-          material = effect(num).material
-          itemstack = new ItemStack(material)
-
-          lore2 = List("" + RESET + GOLD + "プレミアムエフェクトポイント： -" + usePoint,
-            "" + RESET + GOLD + "日時：" + lrs.getString("date")
-          )
-          itemstack.setItemMeta({
-            val meta = Bukkit.getItemFactory.getItemMeta(material)
-            meta.setDisplayName("" + RESET.toString + YELLOW + "購入エフェクト：" + effect(num).desc)
-            meta.setLore(lore2.asJava)
-            meta
-          })
-          inventory.setItem(count, itemstack)
-        }
-        count += 1
-      }
+      val calculated = calculateDonateInventory(playerdata)
+      calculated.getContents.zipWithIndex.foreach(k => inventory.setItem(k._2, k._1))
     } catch {
       case e: SQLException =>
         println("sqlクエリの実行に失敗しました。以下にエラーを表示します")
@@ -98,4 +60,58 @@ class DonateDataManipulator(private val gateway: DatabaseGateway) {
 
     true
   }
+
+  /**
+   * 寄付履歴を表現した4行のインベントリを返す。
+   * @param pd ベースになる [[PlayerData]]
+   * @return インベントリ
+   */
+  def calculateDonateInventory(pd: PlayerData): Inventory = {
+    val inventory = getEmptyInventory(4, ChatColor.BLUE + "" + ChatColor.BOLD + "プレミアムエフェクト購入履歴")
+    var itemstack: ItemStack = null
+    var material: Material = null
+    var lore2: List[String] = null
+    val effect = ActiveSkillPremiumEffect.values
+    // TODO: ほんとうにStarSelectじゃなきゃだめ?
+    val command = "select * from " + tableReference + " where playername = '" + pd.lowercaseName + "'"
+    var count = 0
+    gateway.executeQuery(command).recordIteration { lrs =>
+    //ポイント購入の処理
+    val getPoint = lrs.getInt("getpoint")
+    val usePoint = lrs.getInt("usepoint")
+    if (getPoint > 0) {
+      itemstack = new ItemStack(Material.DIAMOND)
+      lore2 = List(RESET.toString + "" + GREEN + "" + "金額：" + getPoint * 100,
+      "" + RESET + GREEN + "プレミアムエフェクトポイント：+" + getPoint,
+      "" + RESET + GREEN + "日時：" + lrs.getString("date")
+      )
+      itemstack.setItemMeta({
+        val meta = Bukkit.getItemFactory.getItemMeta(Material.DIAMOND)
+        meta.setDisplayName("" + AQUA + UNDERLINE + "" + BOLD + "寄付")
+        meta.setLore(lore2.asJava)
+        meta
+      })
+      inventory.setItem(count, itemstack)
+    } else if (usePoint > 0) {
+      val num = lrs.getInt("effectnum") - 1
+      material = effect(num).material
+      itemstack = new ItemStack(material)
+
+      lore2 = List("" + RESET + GOLD + "プレミアムエフェクトポイント： -" + usePoint,
+      "" + RESET + GOLD + "日時：" + lrs.getString("date")
+      )
+      itemstack.setItemMeta({
+      val meta = Bukkit.getItemFactory.getItemMeta(material)
+      meta.setDisplayName("" + RESET.toString + YELLOW + "購入エフェクト：" + effect(num).desc)
+      meta.setLore(lore2.asJava)
+      meta
+    })
+      inventory.setItem(count, itemstack)
+    }
+      count += 1
+    }
+    inventory
+  }
+
+  private def getEmptyInventory(rows: Int, title: String): Inventory = Bukkit.getServer.createInventory(null, rows * 9, title)
 }
