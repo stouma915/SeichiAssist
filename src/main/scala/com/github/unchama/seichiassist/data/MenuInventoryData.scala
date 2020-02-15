@@ -220,7 +220,7 @@ object MenuInventoryData {
       itemstack.setItemMeta(skullmeta)
       AsyncInventorySetter.setItemAsync(inventory, 52, itemstack.clone)
     }
-    var skullmeta = if (page == 0) {
+    val skullmeta = if (page == 0) {
       buildSkullMeta(
         ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ホームへ",
         Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"),
@@ -265,27 +265,33 @@ object MenuInventoryData {
     val itemstack3 = build(Material.BOOK_AND_QUILL, ChatColor.BLUE + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "プレミアムエフェクト購入履歴", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで閲覧")
     AsyncInventorySetter.setItemAsync(inventory, 2, itemstack3)
     val itemstack4 = build(Material.GLASS, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "エフェクトを使用しない", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックでセット", x => DIG100(x))
-    AsyncInventorySetter.setItemAsync(inventory, 1, itemstack4)
-    val i = 0
-    ActiveSkillNormalEffect.values.foreach { elem =>
-      //プレイヤーがそのスキルを取得している場合の処理
-      val itemstack = if (playerdata.activeskilldata.obtainedSkillEffects.contains(elem))
-        build(elem.material, elem.nameOnUI, util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + elem.explanation, ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックでセット"))
-      else { //プレイヤーがそのスキルをまだ取得していない場合の処理
-        build(Material.BEDROCK, null, util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + elem.explanation, ChatColor.RESET + "" + ChatColor.YELLOW + "必要エフェクトポイント：" + elem.usePoint, ChatColor.RESET + "" + ChatColor.AQUA + "" + ChatColor.UNDERLINE + "クリックで解除"))
+    AsyncInventorySetter.setItemAsync(inventory, 1, itemstack4);
+    {
+      var i = 0
+      ActiveSkillNormalEffect.values.foreach { elem =>
+        //プレイヤーがそのスキルを取得している場合の処理
+        val itemstack = if (playerdata.activeskilldata.obtainedSkillEffects.contains(elem))
+          build(elem.material, elem.nameOnUI, util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + elem.explanation, ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックでセット"))
+        else { //プレイヤーがそのスキルをまだ取得していない場合の処理
+          build(Material.BEDROCK, null, util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + elem.explanation, ChatColor.RESET + "" + ChatColor.YELLOW + "必要エフェクトポイント：" + elem.usePoint, ChatColor.RESET + "" + ChatColor.AQUA + "" + ChatColor.UNDERLINE + "クリックで解除"))
+        }
+        AsyncInventorySetter.setItemAsync(inventory, i, itemstack)
+        i += 1
       }
-      AsyncInventorySetter.setItemAsync(inventory, i, itemstack)
-      i += 1
     }
 
-    val effects = ActiveSkillPremiumEffect.arrayValues
-    var i = 27
-    for (effect <- effects) {
-      var itemstack = null
-      if (playerdata.activeskilldata.obtainedSkillPremiumEffects.contains(effect)) itemstack = build(effect.material, ChatColor.UNDERLINE + "" + ChatColor.BOLD + ChatColor.stripColor(effect.desc), util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + effect.explain, ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックでセット"))
-      else itemstack = build(Material.BEDROCK, effect.desc, util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + effect.explain, ChatColor.RESET + "" + ChatColor.YELLOW + "必要プレミアムポイント：" + effect.usePoint, ChatColor.RESET + "" + ChatColor.AQUA + "" + ChatColor.UNDERLINE + "クリックで解除"))
-      AsyncInventorySetter.setItemAsync(inventory, i, itemstack)
-      i += 1
+    {
+      val effects = ActiveSkillPremiumEffect.values
+      var i = 27
+      for (effect <- effects) {
+        val itemstack = if (playerdata.activeskilldata.obtainedSkillPremiumEffects.contains(effect)) {
+          build(effect.material, ChatColor.UNDERLINE + "" + ChatColor.BOLD + ChatColor.stripColor(effect.desc), util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + effect.explain, ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックでセット"))
+        } else {
+          build(Material.BEDROCK, effect.desc, util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + effect.explain, ChatColor.RESET + "" + ChatColor.YELLOW + "必要プレミアムポイント：" + effect.usePoint, ChatColor.RESET + "" + ChatColor.AQUA + "" + ChatColor.UNDERLINE + "クリックで解除"))
+        }
+        AsyncInventorySetter.setItemAsync(inventory, i, itemstack)
+        i += 1
+      }
     }
     inventory
   }
