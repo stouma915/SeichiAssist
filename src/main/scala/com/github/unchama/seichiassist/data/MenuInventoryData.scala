@@ -14,6 +14,7 @@ import org.bukkit.enchantments.Enchantment
 import org.bukkit.entity.Player
 import org.bukkit.inventory.{Inventory, ItemFlag, ItemStack}
 import org.bukkit.inventory.meta.{ItemMeta, SkullMeta}
+
 import scala.jdk.CollectionConverters._
 import scala.collection.mutable
 
@@ -26,11 +27,11 @@ object MenuInventoryData {
   private val finishedMiddlePageBuild = new mutable.HashMap[UUID, Boolean](60, 0.75)
   private val finishedTailPageBuild = new mutable.HashMap[UUID, Boolean](60, 0.75)
   private val finishedShopPageBuild = new mutable.HashMap[UUID, Boolean](60, 0.75)
-  private val headPartIndex = new mutable.HashMap[UUID, Integer](60, 0.75)
-  private val middlePartIndex = new mutable.HashMap[UUID, Integer](60, 0.75)
-  private val tailPartIndex = new mutable.HashMap[UUID, Integer](60, 0.75)
-  private val shopIndex = new mutable.HashMap[UUID, Integer](60, 0.75)
-  private val taihiIndex = new mutable.HashMap[UUID, Integer](60, 0.75)
+  private val headPartIndex = new mutable.HashMap[UUID, Int](60, 0.75)
+  private val middlePartIndex = new mutable.HashMap[UUID, Int](60, 0.75)
+  private val tailPartIndex = new mutable.HashMap[UUID, Int](60, 0.75)
+  private val shopIndex = new mutable.HashMap[UUID, Int](60, 0.75)
+  private val taihiIndex = new mutable.HashMap[UUID, Int](60, 0.75)
   private val loreTable = util.Arrays.asList(
     Collections.emptyList,
     util.Arrays.asList(ChatColor.RED + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ガンガンたべるぞ", ChatColor.RESET + "" + ChatColor.GRAY + "とにかく妖精さんにりんごを開放します。", ChatColor.RESET + "" + ChatColor.GRAY + "めっちゃ喜ばれます。"),
@@ -282,10 +283,10 @@ object MenuInventoryData {
    * @return メニュー
    */
   def getBuyRecordMenuData(player: Player) = {
-    val playerdata = playermap(player.getUniqueId)
     val inventory = getEmptyInventory(4, ChatColor.BLUE + "" + ChatColor.BOLD + "プレミアムエフェクト購入履歴")
     val itemstack = buildPlayerSkull(null, ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動", ARROW_LEFT)
     AsyncInventorySetter.setItemAsync(inventory, 27, itemstack.clone)
+    val playerdata = playermap(player.getUniqueId)
     databaseGateway.donateDataManipulator.loadDonateData(playerdata, inventory)
     inventory
   }
@@ -410,7 +411,7 @@ object MenuInventoryData {
       if (inventoryIndex < 27) {
         val maybeMiddlePart = Nicknames.getMiddlePartFor(i)
         //一部の「隠し中パーツ」は取得しているかの確認
-        if (9911 <= i && playerdata.TitleFlags.contains(i) && maybeMiddlePart.nonEmpty || maybeMiddlePart.nonEmpty) {
+        if (maybeMiddlePart.nonEmpty || 9911 <= i && playerdata.TitleFlags.contains(i)) {
           val itemstack = build(Material.MILK_BUCKET, Integer.toString(i), ChatColor.RESET + "" + ChatColor.RED + "中パーツ「" + maybeMiddlePart.get + "」")
           AsyncInventorySetter.setItemAsync(inventory, inventoryIndex, itemstack)
           inventoryIndex += 1
@@ -544,40 +545,68 @@ object MenuInventoryData {
     val uuid = p.getUniqueId
     val playerdata = SeichiAssist.playermap(uuid)
     if (validate(p, playerdata, "投票妖精")) return null
-    val inventory = getEmptyInventory(4, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "投票ptメニュー")
+    val inventory = getEmptyInventory(4, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "投票ptメニュー");
     //投票pt受け取り
-    val itemstack = build(Material.DIAMOND, ChatColor.LIGHT_PURPLE + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "クリックで投票特典を受け取れます", getVoteButtonLore(playerdata), DIG100)
-    AsyncInventorySetter.setItemAsync(inventory, 0, itemstack)
+    {
+      val itemstack = build(
+        Material.DIAMOND,
+        ChatColor.LIGHT_PURPLE + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "クリックで投票特典を受け取れます",
+        getVoteButtonLore(playerdata),
+        x => DIG100(x)
+        )
+      AsyncInventorySetter.setItemAsync(inventory, 0, itemstack)
+    }
+
     // ver0.3.2 投票ページ表示
-    val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + "投票すると様々な特典が！", ChatColor.RESET + "" + ChatColor.GREEN + "1日1回投票出来ます", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "クリックするとチャット欄に", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "URLが表示されますので", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "Tキーを押してから", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "そのURLをクリックしてください")
-    val itemstack = build(Material.BOOK_AND_QUILL, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "投票ページにアクセス", lore)
-    AsyncInventorySetter.setItemAsync(inventory, 9, itemstack)
+    {
+      val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + "投票すると様々な特典が！", ChatColor.RESET + "" + ChatColor.GREEN + "1日1回投票出来ます", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "クリックするとチャット欄に", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "URLが表示されますので", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "Tキーを押してから", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "そのURLをクリックしてください")
+      val itemstack = build(Material.BOOK_AND_QUILL, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "投票ページにアクセス", lore)
+      AsyncInventorySetter.setItemAsync(inventory, 9, itemstack)
+    }
+
     //棒メニューに戻る
-    val lore = Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動")
-    val itemstack = buildPlayerSkull(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ホームへ", lore, ARROW_LEFT)
-    AsyncInventorySetter.setItemAsync(inventory, 27, itemstack.clone)
+    {
+      val lore = Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動")
+      val itemstack = buildPlayerSkull(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ホームへ", lore, ARROW_LEFT)
+      AsyncInventorySetter.setItemAsync(inventory, 27, itemstack.clone)
+    }
+
     //妖精召喚時間設定トグルボタン
-    val list = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + "" + ChatColor.BOLD + "" + VotingFairyTask.dispToggleVFTime(playerdata.toggleVotingFairy), "", ChatColor.RESET + "" + ChatColor.GRAY + "コスト", ChatColor.RESET + "" + ChatColor.RED + "" + ChatColor.BOLD + "" + playerdata.toggleVotingFairy * 2 + "投票pt", "", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで切替")
-    val itemStack = build(Material.WATCH, ChatColor.AQUA + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "マナ妖精 時間設定", list)
-    AsyncInventorySetter.setItemAsync(inventory, 2, itemStack)
+    {
+      val list = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + "" + ChatColor.BOLD + "" + VotingFairyTask.dispToggleVFTime(playerdata.toggleVotingFairy), "", ChatColor.RESET + "" + ChatColor.GRAY + "コスト", ChatColor.RESET + "" + ChatColor.RED + "" + ChatColor.BOLD + "" + playerdata.toggleVotingFairy * 2 + "投票pt", "", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで切替")
+      val itemStack = build(Material.WATCH, ChatColor.AQUA + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "マナ妖精 時間設定", list)
+      AsyncInventorySetter.setItemAsync(inventory, 2, itemStack)
+    }
+
     //妖精契約設定トグル
-    val itemStack = new ItemStack(Material.PAPER)
-    itemStack.setItemMeta(getVotingFairyContractMeta(playerdata))
-    AsyncInventorySetter.setItemAsync(inventory, 11, itemStack)
+    {
+      val itemStack = new ItemStack(Material.PAPER)
+      itemStack.setItemMeta(getVotingFairyContractMeta(playerdata))
+      AsyncInventorySetter.setItemAsync(inventory, 11, itemStack)
+    }
     //妖精音トグル
-    val itemStack = new ItemStack(Material.JUKEBOX)
-    itemStack.setItemMeta(getVotingFairySoundsToggleMeta(playerdata.toggleVFSound))
-    AsyncInventorySetter.setItemAsync(inventory, 20, itemStack)
+    {
+      val itemStack = new ItemStack(Material.JUKEBOX)
+      itemStack.setItemMeta(getVotingFairySoundsToggleMeta(playerdata.toggleVFSound))
+      AsyncInventorySetter.setItemAsync(inventory, 20, itemStack)
+    }
+
     //妖精召喚
-    val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GRAY + "" + playerdata.toggleVotingFairy * 2 + "投票ptを消費して", ChatColor.RESET + "" + ChatColor.GRAY + "マナ妖精を呼びます", ChatColor.RESET + "" + ChatColor.GRAY + "時間 : " + VotingFairyTask.dispToggleVFTime(playerdata.toggleVotingFairy), ChatColor.RESET + "" + ChatColor.DARK_RED + "Lv.10以上で解放")
-    val itemStack = build(Material.GHAST_TEAR, ChatColor.LIGHT_PURPLE + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "マナ妖精 召喚", lore, DIG100)
-    AsyncInventorySetter.setItemAsync(inventory, 4, itemStack)
-    if (playerdata.usingVotingFairy) { //妖精 時間確認
-      val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GRAY + "妖精さんはいそがしい。", ChatColor.GRAY + "帰っちゃう時間を教えてくれる").asScala
-      val itemStack = build(Material.COMPASS, ChatColor.LIGHT_PURPLE + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "マナ妖精に時間を聞く", lore, DIG100)
-      AsyncInventorySetter.setItemAsync(inventory, 13, itemStack)
-      val yourRank = playerdata.calcPlayerApple
-      val lore = new util.ArrayList[String](6 + 2 * 4 + 5).asScala
+    {
+      val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GRAY + "" + playerdata.toggleVotingFairy * 2 + "投票ptを消費して", ChatColor.RESET + "" + ChatColor.GRAY + "マナ妖精を呼びます", ChatColor.RESET + "" + ChatColor.GRAY + "時間 : " + VotingFairyTask.dispToggleVFTime(playerdata.toggleVotingFairy), ChatColor.RESET + "" + ChatColor.DARK_RED + "Lv.10以上で解放")
+      val itemStack = build(Material.GHAST_TEAR, ChatColor.LIGHT_PURPLE + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "マナ妖精 召喚", lore, x => DIG100(x))
+      AsyncInventorySetter.setItemAsync(inventory, 4, itemStack)
+    }
+
+    {
+      if (playerdata.usingVotingFairy) { //妖精 時間確認
+      {
+        val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GRAY + "妖精さんはいそがしい。", ChatColor.GRAY + "帰っちゃう時間を教えてくれる")
+        val itemStack = build(Material.COMPASS, ChatColor.LIGHT_PURPLE + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "マナ妖精に時間を聞く", lore, x => DIG100(x))
+        AsyncInventorySetter.setItemAsync(inventory, 13, itemStack)
+      }
+      val yourRank = playerdata.calcPlayerApple()
+      val lore = new util.ArrayList[String](6 + 2 * 4 + 5)
       // 6
       lore.addAll(util.Arrays.asList(ChatColor.RESET + "" + ChatColor.RED + "" + ChatColor.BOLD + "※ﾆﾝｹﾞﾝに見られないように気を付けること！", ChatColor.RESET + "" + ChatColor.RED + "" + ChatColor.BOLD + "  毎日大妖精からデータを更新すること！", "", ChatColor.RESET + "" + ChatColor.GOLD + "" + ChatColor.BOLD + "昨日までにがちゃりんごを", ChatColor.RESET + "" + ChatColor.GOLD + "" + ChatColor.BOLD + "たくさんくれたﾆﾝｹﾞﾝたち", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "召喚されたらラッキーだよ！"))
       for (rank <- 0 to 3) {
@@ -594,8 +623,9 @@ object MenuInventoryData {
       lore.add(ChatColor.GREEN + "↓呼び出したﾆﾝｹﾞﾝの情報↓")
       lore.add(ChatColor.GREEN + "今までに" + playerdata.p_apple + "個もらった")
       lore.add(ChatColor.GREEN + "ﾆﾝｹﾞﾝの中では" + yourRank + "番目にたくさんくれる！")
-      val itemStack = build(Material.GOLDEN_APPLE, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "㊙ がちゃりんご情報 ㊙", lore, DIG100)
+      val itemStack = build(Material.GOLDEN_APPLE, ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "㊙ がちゃりんご情報 ㊙", lore, x => DIG100(x))
       AsyncInventorySetter.setItemAsync(inventory, 6, itemStack)
+      }
     }
     inventory
   }
@@ -631,7 +661,7 @@ object MenuInventoryData {
     // n % 4 + 1 -> 1..4
     val strategy = playerdata.toggleGiveApple
     val lore = loreTable(strategy)
-    itemmeta.setLore(lore.asInstanceOf[_ <: List[String]])
+    itemmeta.setLore(lore.asInstanceOf[util.List[String]])
     itemmeta
   }
 
@@ -647,13 +677,17 @@ object MenuInventoryData {
     if (validate(p, playerdata, "Gigantic進化前確認")) return null
     val inventory = getEmptyInventory(6, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "スキルを進化させますか?")
     // 色
-    val table = Array[Byte](12, 15, 4, 0, 3)
-    val itemstack = new ItemStack(Material.STAINED_GLASS_PANE, 1, table(playerdata.giganticBerserk.stage))
-    val itemmeta = itemstack.getItemMeta
-    itemmeta.setDisplayName(" ")
-    itemstack.setItemMeta(itemmeta)
-    placeGiganticBerserkGlass(inventory, itemstack)
-    placeGiganticBerserkShape(inventory)
+    val table = Array[Byte](12, 15, 4, 0, 3);
+    {
+      val itemstack = new ItemStack(Material.STAINED_GLASS_PANE, 1, table(playerdata.giganticBerserk.stage))
+      val itemmeta = itemstack.getItemMeta
+      itemmeta.setDisplayName(" ")
+      itemstack.setItemMeta(itemmeta)
+      // dynamic
+      placeGiganticBerserkGlass(inventory, itemstack)
+      // static
+      placeGiganticBerserkShape(inventory)
+    }
     val lore = GB_CONFIRM
     val itemstack = build(Material.NETHER_STAR, ChatColor.WHITE + "スキルを進化させる", lore)
     AsyncInventorySetter.setItemAsync(inventory, 31, itemstack)
@@ -666,7 +700,7 @@ object MenuInventoryData {
     if (validate(p, playerdata, "GiganticBerserk進化後画面")) return null
     val inventory = getEmptyInventory(6, ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "スキルを進化させました")
     val table = Array[Byte](12, 15, 4, 0, 3, 12)
-    val b: Byte = table(playerdata.giganticBerserk.stage)
+    val b = table(playerdata.giganticBerserk.stage)
     val itemstack = new ItemStack(Material.STAINED_GLASS_PANE, 1, b)
     val itemmeta = itemstack.getItemMeta
     if (playerdata.giganticBerserk.stage >= 4) {
