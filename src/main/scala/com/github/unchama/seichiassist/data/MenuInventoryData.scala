@@ -90,19 +90,25 @@ object MenuInventoryData {
       itemstack.setItemMeta(skullMeta)
       AsyncInventorySetter.setItemAsync(inventory, 52, itemstack.clone)
     }
+
     // 1ページ目を開く
     val firstPage = page == 0
-    val name = if (firstPage) ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ホームへ" else ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "整地神ランキング" + page + "ページ目へ"
-    val lore = Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動")
-    val ign = if (firstPage) ARROW_LEFT else ARROW_UP
-    val skullmeta = buildSkullMeta(name, lore, ign)
-    itemstack.setItemMeta(skullmeta)
-    AsyncInventorySetter.setItemAsync(inventory, 45, itemstack.clone)
+    val name = if (firstPage) ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ホームへ" else ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "整地神ランキング" + page + "ページ目へ";
+    {
+      val lore = Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動")
+      val ign = if (firstPage) ARROW_LEFT else ARROW_UP
+      val skullmeta = buildSkullMeta(name, lore, ign)
+      itemstack.setItemMeta(skullmeta)
+      AsyncInventorySetter.setItemAsync(inventory, 45, itemstack.clone)
+    }
+
     // 総整地量の表記
-    val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.AQUA + "全プレイヤー総整地量:", ChatColor.RESET + "" + ChatColor.AQUA + SeichiAssist.allplayerbreakblockint)
-    val skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "整地鯖統計データ", lore, "unchama")
-    itemstack.setItemMeta(skullmeta)
-    AsyncInventorySetter.setItemAsync(inventory, 53, itemstack.clone)
+    {
+      val lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.AQUA + "全プレイヤー総整地量:", ChatColor.RESET + "" + ChatColor.AQUA + SeichiAssist.allplayerbreakblockint)
+      val skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "整地鯖統計データ", lore, "unchama")
+      itemstack.setItemMeta(skullmeta)
+      AsyncInventorySetter.setItemAsync(inventory, 53, itemstack.clone)
+    }
     inventory
   }
 
@@ -214,10 +220,18 @@ object MenuInventoryData {
       itemstack.setItemMeta(skullmeta)
       AsyncInventorySetter.setItemAsync(inventory, 52, itemstack.clone)
     }
-    var skullmeta = null
-    if (page == 0) skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ホームへ", Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"), ARROW_LEFT)
-    else { // 寄付神ランキング前ページ目を開く;
-      skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "寄付神ランキング" + page + "ページ目へ", Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"), ARROW_UP)
+    var skullmeta = if (page == 0) {
+      buildSkullMeta(
+        ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ホームへ",
+        Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"),
+        ARROW_LEFT
+      )
+    } else { // 寄付神ランキング前ページ目を開く;
+      buildSkullMeta(
+        ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "寄付神ランキング" + page + "ページ目へ",
+        Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"),
+        ARROW_UP
+      )
     }
     itemstack.setItemMeta(skullmeta)
     AsyncInventorySetter.setItemAsync(inventory, 45, itemstack.clone)
@@ -497,12 +511,12 @@ object MenuInventoryData {
     for (i <- shopIndex(uuid) to 9833) {
       var itemstack: ItemStack = null
       if (inventoryIndex < 27) if (!playerdata.TitleFlags.contains(i)) {
-        val lore: mutable.Buffer[String] = util.Arrays.asList(
+        val lore: mutable.Buffer[String] = mutable.Buffer(
           ChatColor.RESET + "" + ChatColor.RED + "前・後パーツ「" + Nicknames.getHeadPartFor(i).getOrElse(() => "") + "」",
           ChatColor.RESET + "" + ChatColor.GREEN + "必要ポイント：20",
           ChatColor.RESET + "" + ChatColor.AQUA + "クリックで購入できます"
-        ).asScala
-        itemstack = build(Material.BEDROCK, Integer.toString(i), lore)
+        )
+        itemstack = build(Material.BEDROCK, Integer.toString(i), lore.asJava)
         AsyncInventorySetter.setItemAsync(inventory, inventoryIndex, itemstack)
         inventoryIndex += 1
       }
@@ -639,12 +653,14 @@ object MenuInventoryData {
    */
   private def getVotingFairySoundsToggleMeta(playSound: Boolean) = {
     val itemmeta = Bukkit.getItemFactory.getItemMeta(Material.JUKEBOX)
-    var lore = null
     itemmeta.setDisplayName(ChatColor.GOLD + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "マナ妖精の音トグル")
-    if (playSound) lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + "現在音が鳴る設定になっています。", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "※この機能はデフォルトでONです。", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで切替")
-    else {
-      lore = util.Arrays.asList(ChatColor.RESET + "" + ChatColor.RED + "現在音が鳴らない設定になっています。", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "※この機能はデフォルトでONです。", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで切替")
-      itemmeta.addEnchant(Enchantment.DIG_SPEED, 100, false)
+    if (!playSound) {
+      DIG100(itemmeta)
+    }
+    val lore = if (playSound) {
+      util.Arrays.asList(ChatColor.RESET + "" + ChatColor.GREEN + "現在音が鳴る設定になっています。", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "※この機能はデフォルトでONです。", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで切替")
+    } else {
+      util.Arrays.asList(ChatColor.RESET + "" + ChatColor.RED + "現在音が鳴らない設定になっています。", ChatColor.RESET + "" + ChatColor.DARK_GRAY + "※この機能はデフォルトでONです。", ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで切替")
     }
     itemmeta.setLore(lore)
     itemmeta
