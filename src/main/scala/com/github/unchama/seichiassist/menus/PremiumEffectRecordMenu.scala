@@ -1,19 +1,16 @@
 package com.github.unchama.seichiassist.menus
 
 import cats.effect.IO
-import com.github.unchama.buildassist.MenuInventoryData
-import com.github.unchama.concurrent.BukkitSyncIOShift
 import com.github.unchama.itemstackbuilder.SkullItemStackBuilder
 import com.github.unchama.menuinventory.slot.button.Button
-import com.github.unchama.menuinventory.slot.button.action.{ClickEventFilter, FilteredButtonEffect}
 import com.github.unchama.menuinventory.{Menu, MenuFrame, MenuSlotLayout}
 import com.github.unchama.seichiassist.SeichiAssist
-import com.github.unchama.targetedeffect.{computedEffect, sequentialEffect}
-import com.github.unchama.targetedeffect.player.PlayerEffects.openInventoryEffect
-import com.github.unchama.targetedeffect.player.{FocusedSoundEffect, PlayerEffects}
-import org.bukkit.{ChatColor, Sound}
+import org.bukkit.ChatColor
 import org.bukkit.entity.Player
 
+/**
+ * 寄付履歴に対応するメニュー
+ */
 class PremiumEffectRecordMenu extends Menu {
   import com.github.unchama.menuinventory.syntax._
   /**
