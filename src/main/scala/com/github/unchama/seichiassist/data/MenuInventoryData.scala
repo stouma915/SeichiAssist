@@ -186,59 +186,6 @@ object MenuInventoryData {
   }
 
   /**
-   * プレミアムエフェクトポイント
-   *
-   * @param page ページ
-   * @return メニュー
-   */
-  def getRankingByPremiumEffectPoint(page: Int) = {
-    val pageLimit = 2
-    val lowerBound = 1
-    val inventory = getEmptyInventory(6, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "寄付神ランキング")
-    val itemstack = new ItemStack(Material.SKULL_ITEM, 1, PLAYER_SKULL)
-    var donationRank = 50 * page
-    var invIndex = 0
-    while ( {
-      donationRank < 50 + 50 * page
-    }) {
-      if (donationRank >= SeichiAssist.ranklist_premiumeffectpoint.size) break //todo: break is not supported
-      val rankdata = SeichiAssist.ranklist_premiumeffectpoint(donationRank)
-      if (rankdata.premiumeffectpoint < lowerBound) { //寄付金額0
-        break //todo: break is not supported
-      }
-      val skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.BOLD + "" + (donationRank + 1) + "位:" + "" + ChatColor.WHITE + rankdata.name, Collections.singletonList(ChatColor.RESET + "" + ChatColor.GREEN + "総寄付金額:" + rankdata.premiumeffectpoint * 100), rankdata.name)
-      itemstack.setItemMeta(skullmeta)
-      var finalInventoryIndex = 0
-      if (invIndex == 45) finalInventoryIndex = 47
-      else finalInventoryIndex = invIndex
-      AsyncInventorySetter.setItemAsync(inventory, finalInventoryIndex, itemstack.clone)
-      donationRank += 1
-      invIndex += 1
-    }
-    if (page != pageLimit) {
-      val skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "寄付神ランキング" + (page + 2) + "ページ目へ", Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"), "MHF_ArrowDown")
-      itemstack.setItemMeta(skullmeta)
-      AsyncInventorySetter.setItemAsync(inventory, 52, itemstack.clone)
-    }
-    val skullmeta = if (page == 0) {
-      buildSkullMeta(
-        ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ホームへ",
-        Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"),
-        ARROW_LEFT
-      )
-    } else { // 寄付神ランキング前ページ目を開く;
-      buildSkullMeta(
-        ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "寄付神ランキング" + page + "ページ目へ",
-        Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"),
-        ARROW_UP
-      )
-    }
-    itemstack.setItemMeta(skullmeta)
-    AsyncInventorySetter.setItemAsync(inventory, 45, itemstack.clone)
-    inventory
-  }
-
-  /**
    * エフェクト選択
    *
    * @param p プレイヤー
