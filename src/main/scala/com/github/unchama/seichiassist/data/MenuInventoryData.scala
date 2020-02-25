@@ -123,28 +123,42 @@ object MenuInventoryData {
     val inventory = getEmptyInventory(6, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "ログイン神ランキング")
     val itemstack = new ItemStack(Material.SKULL_ITEM, 1, PLAYER_SKULL)
     val rankStart = 10 * page
-    var invIndex = 0
-    for (rank <- rankStart until rankStart + 10) {
-      if (rank >= SeichiAssist.ranklist_playtick.size) break //todo: break is not supported
-      val rankdata = SeichiAssist.ranklist_playtick(rank)
-      val skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.BOLD + "" + (rank + 1) + "位:" + "" + ChatColor.WHITE + rankdata.name, Collections.singletonList(ChatColor.RESET + "" + ChatColor.GREEN + "総ログイン時間:" + TypeConverter.toTimeString(TypeConverter.toSecond(rankdata.playtick))), rankdata.name)
-      itemstack.setItemMeta(skullmeta)
-      AsyncInventorySetter.setItemAsync(inventory, invIndex, itemstack.clone)
-      invIndex += 1
+    def mut[A](a: A, b: A => Unit): A = {
+      b(a)
+      a
     }
-    if (page != pageLimit) {
+    val base = SeichiAssist.ranklist_playtick
+      .view
+      .slice(rankStart, rankStart + 10)
+      .zipWithIndex
+      .map(p => (p._2, {
+        buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.BOLD + "" + (p._2 + 1) + "位:" + "" + ChatColor.WHITE + p._1.name, Collections.singletonList(ChatColor.RESET + "" + ChatColor.GREEN + "総ログイン時間:" + TypeConverter.toTimeString(TypeConverter.toSecond(p._1.playtick))), p._1.name)
+      }))
+      .map(p => (p._1 - rankStart, mut[ItemStack](itemstack.clone, f => f.setItemMeta(p._2))))
+      .toSeq
+
+    // 52
+    val nextPage = if (page != pageLimit) {
       val skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ログイン神ランキング" + (page + 2) + "ページ目へ", Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"), "MHF_ArrowDown")
-      itemstack.setItemMeta(skullmeta)
-      AsyncInventorySetter.setItemAsync(inventory, 52, itemstack.clone)
+      Some(skullmeta)
+    } else {
+      None
     }
+
     // 前のページ / ホームへ
-    var skullmeta = null
-    if (page == 0) skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ホームへ", Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"), ARROW_LEFT)
-    else { // 整地神ランキング前ページを開く;
-      skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ログイン神ランキング" + page + "ページ目へ", Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"), ARROW_UP)
+    val skullmeta = if (page == 0) {
+      buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ホームへ", Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"), ARROW_LEFT)
+    } else { // 整地神ランキング前ページを開く;
+      buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ログイン神ランキング" + page + "ページ目へ", Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"), ARROW_UP)
     }
-    itemstack.setItemMeta(skullmeta)
-    AsyncInventorySetter.setItemAsync(inventory, 45, itemstack.clone)
+
+    base
+      // TODO: 中置演算子仕事しろ
+      .appended((45, mut[ItemStack](itemstack.clone, f => f.setItemMeta(skullmeta))))
+      .appended((52, mut[ItemStack](itemstack.clone, f => if (nextPage.nonEmpty) f.setItemMeta(nextPage.get) else /* NOP */ Unit)))
+      .toMap
+      .foreach(k => AsyncInventorySetter.setItemAsync(inventory, k._1, k._2))
+
     inventory
   }
 
@@ -158,27 +172,29 @@ object MenuInventoryData {
     val pageLimit = 14
     val inventory = getEmptyInventory(6, ChatColor.DARK_PURPLE + "" + ChatColor.BOLD + "投票神ランキング")
     val itemstack = new ItemStack(Material.SKULL_ITEM, 1, PLAYER_SKULL)
-    var voteRank = 10 * page
-    var invIndex = 0
-    while (voteRank < 10 + 10 * page) {
-      if (voteRank >= SeichiAssist.ranklist_p_vote.size) break //todo: break is not supported
-      val rankdata = SeichiAssist.ranklist_p_vote(voteRank)
-      if (rankdata.p_vote == 0) break //todo: break is not supported
-      val skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.BOLD + "" + (voteRank + 1) + "位:" + "" + ChatColor.WHITE + rankdata.name, Collections.singletonList(ChatColor.RESET + "" + ChatColor.GREEN + "総投票回数:" + rankdata.p_vote), rankdata.name)
-      itemstack.setItemMeta(skullmeta)
-      AsyncInventorySetter.setItemAsync(inventory, invIndex, itemstack.clone)
-      voteRank += 1
-      invIndex += 1
+    val begin = 10 * page
+    def mut[A](a: A, b: A => Unit): A = {
+      b(a)
+      a
     }
+    SeichiAssist.ranklist_p_vote
+      .view
+      .slice(10 * page, 10 * page + 10)
+      .zipWithIndex
+      .map(k => (k._2, buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.BOLD + "" + (k._2 + 1) + "位:" + "" + ChatColor.WHITE + k._1.name, Collections.singletonList(ChatColor.RESET + "" + ChatColor.GREEN + "総投票回数:" + k._1.p_vote), k._1.name)))
+      .map(p => (/* DELTA */ p._1 - begin, mut[ItemStack](itemstack.clone(), f => f.setItemMeta(p._2))))
+      .foreach(p => AsyncInventorySetter.setItemAsync(inventory, p._1, p._2))
+
+    val clickToMove = Collections.singletonList("" + ChatColor.RESET + ChatColor.DARK_RED + ChatColor.UNDERLINE + "クリックで移動")
     if (page != pageLimit) { // 投票神ランキング次ページ目を開く
-      val skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "投票神ランキング" + (page + 2) + "ページ目へ", Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"), "MHF_ArrowDown")
+      val skullmeta = buildSkullMeta("" + ChatColor.YELLOW + ChatColor.UNDERLINE + ChatColor.BOLD + "投票神ランキング" + (page + 2) + "ページ目へ", clickToMove, "MHF_ArrowDown")
       itemstack.setItemMeta(skullmeta)
       AsyncInventorySetter.setItemAsync(inventory, 52, itemstack.clone)
     }
-    var skullmeta = null
-    if (page == 0) skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "ホームへ", Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"), ARROW_LEFT)
-    else { // 投票神ランキング前ページを開く
-      skullmeta = buildSkullMeta(ChatColor.YELLOW + "" + ChatColor.UNDERLINE + "" + ChatColor.BOLD + "投票神ランキング" + page + "ページ目へ", Collections.singletonList(ChatColor.RESET + "" + ChatColor.DARK_RED + "" + ChatColor.UNDERLINE + "クリックで移動"), ARROW_UP)
+    val skullmeta = if (page == 0) {
+      buildSkullMeta("" + ChatColor.YELLOW + ChatColor.UNDERLINE + ChatColor.BOLD + "ホームへ", clickToMove, ARROW_LEFT)
+    } else { // 投票神ランキング前ページを開く
+      buildSkullMeta("" + ChatColor.YELLOW + ChatColor.UNDERLINE + ChatColor.BOLD + "投票神ランキング" + page + "ページ目へ", clickToMove, ARROW_UP)
     }
     itemstack.setItemMeta(skullmeta)
     AsyncInventorySetter.setItemAsync(inventory, 45, itemstack.clone)
